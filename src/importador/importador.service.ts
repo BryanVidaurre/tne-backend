@@ -41,8 +41,7 @@ export class ImportadorService {
       upserts++;
     }
 
-    const recal = await this.procesoService.recalcularEstados(periodo);
-    return { periodo, rows: rows.length, upserts, recalculated: recal.updated };
+    return { periodo, rows: rows.length, upserts };
   }
 
   // MATRÍCULA: actualiza alumno (manda), pero NO crea procesos
@@ -87,8 +86,7 @@ export class ImportadorService {
       updated++;
     }
 
-    const recal = await this.procesoService.recalcularEstados(periodo);
-    return { periodo, rows: rows.length, updated, recalculated: recal.updated };
+    return { periodo, rows: rows.length, updated };
   }
 
   // INVITADOS: solo actualiza si existe proceso
@@ -110,8 +108,7 @@ export class ImportadorService {
       updated++;
     }
 
-    const recal = await this.procesoService.recalcularEstados(periodo);
-    return { periodo, rows: rows.length, updated, recalculated: recal.updated };
+    return { periodo, rows: rows.length, updated };
   }
 
   // ASISTENTES: solo actualiza si existe proceso
@@ -135,8 +132,7 @@ export class ImportadorService {
       updated++;
     }
 
-    const recal = await this.procesoService.recalcularEstados(periodo);
-    return { periodo, rows: rows.length, updated, recalculated: recal.updated };
+    return { periodo, rows: rows.length, updated };
   }
 }
 

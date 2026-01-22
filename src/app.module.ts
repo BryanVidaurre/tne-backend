@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { DbModule } from './db/db.module';
+import { MailModule } from './mail/mail.module';
 import { ProcesoModule } from './proceso/proceso.module';
 import { ImportadorModule } from './importador/importador.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
-import { MailModule } from './mail/mail.module';
+import { SqlitePragmasService } from './db/sqlite-pragmas.service';
 
 @Module({
+  providers: [SqlitePragmasService],
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     DbModule,
     MailModule,
     ProcesoModule,
