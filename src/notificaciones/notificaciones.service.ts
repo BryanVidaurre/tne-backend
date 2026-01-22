@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { NotificacionEmail } from './notificacion-email.entity';
 import { Repository } from 'typeorm';
 import { ProcesoTne } from '../proceso/proceso-tne.entity';
 import { Alumno } from '../alumno/alumno.entity';
@@ -10,11 +9,10 @@ import { buildEstadoEmail } from '../mail/templates';
 @Injectable()
 export class NotificacionesService {
   constructor(
-    @InjectRepository(NotificacionEmail)
-    private readonly notifRepo: Repository<NotificacionEmail>,
     @InjectRepository(ProcesoTne)
     private readonly procesoRepo: Repository<ProcesoTne>,
-    @InjectRepository(Alumno) private readonly alumnoRepo: Repository<Alumno>,
+    @InjectRepository(Alumno)
+    private readonly alumnoRepo: Repository<Alumno>,
     private readonly mail: MailService,
   ) {}
 
@@ -35,71 +33,143 @@ export class NotificacionesService {
         continue;
       }
 
-      // Reglas de notificación (mínimas pedidas)
-      const tipos: string[] = [];
-      if (p.estado_final === 'RETIRADA') tipos.push('ENTREGADA_AL_ALUMNO');
-      if (p.estado_final === 'SIN_REGISTRO_JUNAEB')
-        tipos.push('SIN_REGISTRO_JUNAEB');
+      const estado = p.estado_final;
 
-      for (const tipo of tipos) {
-        // Intento "reservar" envío (UNIQUE por periodo/rut/tipo)
-        let record: NotificacionEmail | null = null;
+      // 1) Otros estados: enviar SIEMPRE (no se registra nada)
+      if (estado !== 'RETIRADA' && estado !== 'SIN_REGISTRO_JUNAEB') {
         try {
-          record = await this.notifRepo.save({
-            periodo,
-            rut_num: p.rut_num,
-            tipo_notificacion: tipo,
-            estado_enviado: 0,
-            to_email: email,
-            error: null,
-          });
-        } catch {
-          // Ya existe => ya se envió/intentó en este periodo
-          omitidos++;
-          continue;
-        }
-
-        try {
-          const subject = subjectFor(tipo, periodo);
           const html = buildEstadoEmail({
-            nombre: alumno?.nombre || 'estudiante',
-            rut_num: alumno!.rut_num,
-            rut_dv: alumno?.rut_dv,
+            nombre: alumno?.nombre ?? 'Estudiante',
+            rut_num: p.rut_num,
+            rut_dv: alumno?.rut_dv ?? null,
             periodo,
-            estado_final: p.estado_final || '',
-            pendiente: p.pendiente,
-            proceso_junaeb: p.proceso_junaeb,
-            estado_junaeb: p.estado_junaeb,
-            motivo_rechazo: p.motivo_rechazo,
-            fecha_entrega_u: p.fecha_entrega_u,
-            fecha_retiro: p.fecha_retiro,
-            medio_ingreso: p.medio_ingreso,
+            estado_final: p.estado_final ?? 'SIN_ESTADO',
+
+            pendiente: p.pendiente ?? null,
+
+            proceso_junaeb: (p as any).proceso_junaeb ?? null,
+            estado_junaeb: (p as any).estado_junaeb ?? null,
+            motivo_rechazo: (p as any).motivo_rechazo ?? null,
+            fecha_entrega_u: (p as any).fecha_entrega_u ?? null,
+            fecha_retiro: (p as any).fecha_retiro ?? null,
+            medio_ingreso: (p as any).medio_ingreso ?? null,
           });
 
-          await this.mail.send(email, subject, html);
-
-          record.estado_enviado = 1;
-          record.sent_at = new Date().toISOString();
-          record.error = null;
-          await this.notifRepo.save(record);
+          await this.mail.send(
+            email,
+            `TNE ${periodo}: actualización de estado`,
+            html,
+          );
           enviados++;
         } catch (e: any) {
-          record.estado_enviado = 0;
-          record.error = String(e?.message || e);
-          await this.notifRepo.save(record);
+          console.error('MAIL ERROR:', e?.code, e?.response, e?.message || e);
           errores++;
         }
+        continue;
+      }
+
+      // 2) Solo estos dos estados NO deben repetirse por periodo
+      const reserve = await this.tryReserveOnce(periodo, p.rut_num, estado);
+      if (!reserve.reserved) {
+        omitidos++;
+        continue;
+      }
+
+      try {
+        const tipo =
+          estado === 'RETIRADA' ? 'ENTREGADA_AL_ALUMNO' : 'SIN_REGISTRO_JUNAEB';
+
+        const html = buildEstadoEmail({
+          nombre: alumno?.nombre ?? 'Estudiante',
+          rut_num: p.rut_num,
+          rut_dv: alumno?.rut_dv ?? null,
+          periodo,
+          estado_final: p.estado_final ?? 'SIN_ESTADO',
+
+          pendiente: p.pendiente ?? null,
+
+          proceso_junaeb: (p as any).proceso_junaeb ?? null,
+          estado_junaeb: (p as any).estado_junaeb ?? null,
+          motivo_rechazo: (p as any).motivo_rechazo ?? null,
+          fecha_entrega_u: (p as any).fecha_entrega_u ?? null,
+          fecha_retiro: (p as any).fecha_retiro ?? null,
+          medio_ingreso: (p as any).medio_ingreso ?? null,
+        });
+
+        await this.mail.send(email, subjectFor(tipo, periodo), html);
+        enviados++;
+      } catch (e: any) {
+        // rollback de la reserva si falla el envío (para permitir reintento)
+        const col = reserve.col;
+        await this.procesoRepo
+          .createQueryBuilder()
+          .update()
+          .set({ [col]: null } as any)
+          .where(
+            'periodo = :periodo AND rut_num = :rut_num AND ' + col + ' = :now',
+            {
+              periodo,
+              rut_num: p.rut_num,
+              now: reserve.now,
+            },
+          )
+          .execute();
+        console.error('MAIL ERROR:', e?.code, e?.response, e?.message || e);
+        errores++;
       }
     }
 
     return { periodo, enviados, omitidos, errores };
   }
+
+  private async tryReserveOnce(
+    periodo: number,
+    rut_num: number,
+    estado: 'RETIRADA' | 'SIN_REGISTRO_JUNAEB',
+  ) {
+    const now = new Date().toISOString();
+
+    if (estado === 'RETIRADA') {
+      const r = await this.procesoRepo
+        .createQueryBuilder()
+        .update()
+        .set({ notificado_retirada_at: now } as any)
+        .where(
+          'periodo = :periodo AND rut_num = :rut_num AND estado_final = :st AND notificado_retirada_at IS NULL',
+          { periodo, rut_num, st: 'RETIRADA' },
+        )
+        .execute();
+
+      return {
+        reserved: r.affected === 1,
+        now,
+        col: 'notificado_retirada_at' as const,
+      };
+    }
+
+    const r = await this.procesoRepo
+      .createQueryBuilder()
+      .update()
+      .set({ notificado_sin_junaeb_at: now } as any)
+      .where(
+        'periodo = :periodo AND rut_num = :rut_num AND estado_final = :st AND notificado_sin_junaeb_at IS NULL',
+        { periodo, rut_num, st: 'SIN_REGISTRO_JUNAEB' },
+      )
+      .execute();
+
+    return {
+      reserved: r.affected === 1,
+      now,
+      col: 'notificado_sin_junaeb_at' as const,
+    };
+  }
 }
 
-function subjectFor(tipo: string, periodo: number) {
+function subjectFor(
+  tipo: 'ENTREGADA_AL_ALUMNO' | 'SIN_REGISTRO_JUNAEB',
+  periodo: number,
+) {
   if (tipo === 'ENTREGADA_AL_ALUMNO')
     return `TNE ${periodo}: retiro registrado`;
-  if (tipo === 'SIN_REGISTRO_JUNAEB')
-    return `TNE ${periodo}: sin registro en JUNAEB`;
-  return `TNE ${periodo}: actualización`;
+  return `TNE ${periodo}: sin registro en JUNAEB`;
 }

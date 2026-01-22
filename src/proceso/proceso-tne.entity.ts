@@ -72,6 +72,12 @@ export class ProcesoTne {
   @Column({ type: 'text', nullable: true })
   medio_ingreso?: string | null;
 
+  @Column({ type: 'datetime', nullable: true })
+  notificado_retirada_at?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  notificado_sin_junaeb_at?: string | null;
+
   @UpdateDateColumn({ type: 'datetime' })
   updated_at: Date;
 }
