@@ -23,7 +23,6 @@ export function buildEstadoEmail(p: EstadoEmailParams) {
 
   const cuerpo = mensajePorEstado(p, nombre, rut);
 
-  // Se envía como HTML mínimo para respetar saltos de línea
   return `<pre style="font-family:Arial,Helvetica,sans-serif;font-size:14px;white-space:pre-wrap;line-height:1.5;margin:0;">${escapeHtml(
     cuerpo,
   )}</pre>`;
@@ -35,7 +34,7 @@ function mensajePorEstado(p: EstadoEmailParams, nombre: string, rut: string) {
       return `
 Estimado/a ${nombre},
 
-Su Tarjeta Nacional Estudiantil (TNE) se encuentra disponible para retiro en la universidad.
+Su Tarjeta TNE se encuentra disponible para retiro en la universidad.
 
 Puede acercarse en los horarios informados por la institución, portando su cédula de identidad y cumpliendo los requisitos indicados para el retiro.
 
@@ -43,7 +42,7 @@ RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
@@ -59,39 +58,55 @@ RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
-    case 'EN_PROCESO_FOTO':
+    case 'ACEPTADA':
       return `
 Estimado/a ${nombre},
 
-Su solicitud de tarjeta TNE se encuentra en proceso de fotografía.
+Su solicitud TNE figura como ACEPTADA en el reporte de JUNAEB.
 
-No requiere realizar ninguna acción por el momento. Se le notificará cuando el estado cambie.
+Esto significa que el trámite fue aprobado y continúa su curso. Le notificaremos cuando la tarjeta se encuentre disponible para retiro en la universidad.
 
 RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
-    case 'EN_PROCESO_REVALIDACION':
+    case 'FOTOGRAFIADO':
       return `
 Estimado/a ${nombre},
 
-Su proceso de revalidación de tarjeta TNE se encuentra en trámite.
+Su solicitud TNE figura como FOTOGRAFIADO en el reporte de JUNAEB.
 
-No requiere realizar ninguna acción por el momento. Se le notificará cuando el estado cambie.
+El trámite avanza y le notificaremos cuando la tarjeta se encuentre disponible para retiro en la universidad.
 
 RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
+Universidad
+`;
+
+    case 'REVALIDADO':
+      return `
+Estimado/a ${nombre},
+
+Su TNE figura como REVALIDADO en el reporte de JUNAEB.
+
+Le notificaremos si se registra un cambio de estado relevante.
+
+RUT: ${rut}
+Período: ${p.periodo}
+
+Atentamente,
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
@@ -99,7 +114,7 @@ Universidad
       return `
 Estimado/a ${nombre},
 
-Su solicitud de tarjeta TNE fue rechazada.
+Su solicitud TNE figura como RECHAZADA en el reporte de JUNAEB.
 
 Motivo: ${p.motivo_rechazo ?? 'No especificado'}
 
@@ -109,7 +124,7 @@ RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
@@ -119,13 +134,13 @@ Estimado/a ${nombre},
 
 A la fecha, su pago se encuentra registrado, pero aún no aparece información asociada en el reporte de JUNAEB.
 
-Esto puede deberse a un desfase de actualización. Se le notificará cuando el sistema registre un nuevo estado.
+Esto puede deberse a un desfase de actualización. Le notificaremos cuando el sistema registre un nuevo estado.
 
 RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
@@ -135,11 +150,13 @@ Estimado/a ${nombre},
 
 Su estado de tarjeta TNE fue actualizado en el sistema.
 
+Estado: ${p.estado_final}
+
 RUT: ${rut}
 Período: ${p.periodo}
 
 Atentamente,
-Sistema de Gestión TNE
+Dirección de Asuntos Estudiantiles
 Universidad
 `;
   }

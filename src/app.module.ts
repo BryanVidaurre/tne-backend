@@ -6,6 +6,7 @@ import { ProcesoModule } from './proceso/proceso.module';
 import { ImportadorModule } from './importador/importador.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { SqlitePragmasService } from './db/sqlite-pragmas.service';
+import { ReporteModule } from './reporte/reporte.module';
 
 @Module({
   providers: [SqlitePragmasService],
@@ -16,6 +17,7 @@ import { SqlitePragmasService } from './db/sqlite-pragmas.service';
     ProcesoModule,
     ImportadorModule,
     NotificacionesModule,
+    ReporteModule,
   ],
 })
 export class AppModule {}

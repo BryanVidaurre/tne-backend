@@ -5,6 +5,7 @@ import { toIsoDate } from '../../common/date.util';
 export type PagoRow = {
   rut_num: number;
   rut_dv?: string;
+  nombre?: string;
   fecha_pago?: string | null;
   tipo_alumno?: string | null;
 };
@@ -40,6 +41,7 @@ export function parsePagos(buffer: Buffer): PagoRow[] {
   );
 
   const rutIdx = headers.indexOf('RUT');
+  const nombreIdx = headers.indexOf('NOMBRE');
   const fechaIdx = headers.indexOf('FECHA DE PAGO');
   const tipoIdx = headers.indexOf('TIPO ALUMNO');
 
@@ -55,6 +57,7 @@ export function parsePagos(buffer: Buffer): PagoRow[] {
     out.push({
       rut_num: parsed.rut_num,
       rut_dv: parsed.rut_dv,
+      nombre: String(row[nombreIdx] || '').trim() || undefined,
       fecha_pago: toIsoDate(row[fechaIdx]),
       tipo_alumno: String(row[tipoIdx] || '').trim() || null,
     });

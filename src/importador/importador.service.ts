@@ -25,11 +25,24 @@ export class ImportadorService {
     let upserts = 0;
 
     for (const r of rows) {
-      // alumno mínimo (por si matrícula aún no se sube)
-      await this.alumnoRepo.save({
-        rut_num: r.rut_num,
-        rut_dv: r.rut_dv ?? null,
+      const alumno = await this.alumnoRepo.findOne({
+        where: { rut_num: r.rut_num },
       });
+
+      // Si no existe, lo crea con nombre de pagos
+      if (!alumno) {
+        await this.alumnoRepo.save({
+          rut_num: r.rut_num,
+          rut_dv: r.rut_dv ?? null,
+          nombre: r.nombre ?? null, // ← desde pagos
+        });
+      } else {
+        // Si existe pero no tiene nombre (aún no se sube matrícula)
+        if (!alumno.nombre && r.nombre) {
+          alumno.nombre = r.nombre;
+          await this.alumnoRepo.save(alumno);
+        }
+      }
 
       await this.procesoRepo.save({
         periodo,
@@ -141,7 +154,7 @@ function normalizeEstadoJunaeb(s?: string | null): string | null {
   const t = s.trim().toUpperCase();
 
   // aceptar variantes con espacios/guiones
-  if (t.includes('ENTREG')) return 'TNE_ENTREGADA';
+  if (t.includes('ENTREG')) return 'TNE ENTREGADA';
   if (t.includes('ACEPT')) return 'ACEPTADA';
   if (t.includes('REVALID')) return 'REVALIDADO';
   if (t.includes('FOTOG')) return 'FOTOGRAFIADO';
