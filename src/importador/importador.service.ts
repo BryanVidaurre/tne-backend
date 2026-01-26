@@ -34,7 +34,7 @@ export class ImportadorService {
         await this.alumnoRepo.save({
           rut_num: r.rut_num,
           rut_dv: r.rut_dv ?? null,
-          nombre: r.nombre ?? null, // ← desde pagos
+          nombre: r.nombre ?? null,
         });
       } else {
         // Si existe pero no tiene nombre (aún no se sube matrícula)

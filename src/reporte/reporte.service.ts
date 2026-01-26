@@ -20,7 +20,7 @@ export class ReporteService {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('TNE');
 
-    // Cabeceras
+    // 1) Define columnas primero (esto crea/usa la fila 1 como header)
     sheet.columns = [
       { header: 'RUT', key: 'rut', width: 15 },
       { header: 'Nombre', key: 'nombre', width: 35 },
@@ -32,6 +32,35 @@ export class ReporteService {
       { header: 'Medio Ingreso', key: 'medio', width: 18 },
       { header: 'Con Huella', key: 'huella', width: 12 },
     ];
+
+    // 2) Inserta filas ARRIBA de la tabla (empuja el header hacia abajo)
+    const generadoEn = new Date();
+    const fechaStr = generadoEn.toLocaleString('es-CL', {
+      timeZone: 'America/Santiago',
+    });
+
+    sheet.spliceRows(
+      1,
+      0,
+      [`Reporte TNE - Generado: ${fechaStr}`],
+      [`Periodo: ${periodo}`],
+      [],
+    );
+
+    // (opcional) merge para que el título quede “arriba de la tabla” ancho completo
+    sheet.mergeCells(1, 1, 1, sheet.columnCount);
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).alignment = { vertical: 'middle' };
+    sheet.getRow(1).height = 18;
+
+    sheet.mergeCells(2, 1, 2, sheet.columnCount);
+    sheet.getRow(2).alignment = { vertical: 'middle' };
+
+    // El header ahora quedó en la fila 4
+    const headerRow = sheet.getRow(4);
+    headerRow.font = { bold: true };
+    headerRow.alignment = { vertical: 'middle' };
+    headerRow.height = 18;
 
     for (const p of procesos) {
       const alumno = await this.alumnoRepo.findOne({
