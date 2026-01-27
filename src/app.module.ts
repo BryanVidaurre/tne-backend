@@ -8,9 +8,12 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { SqlitePragmasService } from './db/sqlite-pragmas.service';
 import { ReporteModule } from './reporte/reporte.module';
 import { TneModule } from './tne/tne.module';
+import { AuthModule } from './auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './auth/auth.guard';
 
 @Module({
-  providers: [SqlitePragmasService],
+  providers: [SqlitePragmasService, { provide: APP_GUARD, useClass: AuthGuard }],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DbModule,
@@ -20,6 +23,9 @@ import { TneModule } from './tne/tne.module';
     NotificacionesModule,
     ReporteModule,
     TneModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
+
+
