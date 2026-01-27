@@ -36,16 +36,11 @@ function mensajePorEstado(p: EstadoEmailParams, nombre: string, rut: string) {
       return `
 Estimado/a ${nombre},
 
-Su Tarjeta TNE se encuentra disponible para retiro en la universidad.
-
-Puede acercarse en los horarios informados por la institución, portando su cédula de identidad y cumpliendo los requisitos indicados para el retiro.
-
-RUT: ${rut}
-Período: ${p.periodo}
+Su tarjeta TNE ha llegado, debe retirarla en la DAE en el siguiente horario: Mañana 9:00 - 13:00   Tarde 14:00 - 16:00.
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
 
     case 'RETIRADA':
@@ -56,60 +51,42 @@ Registramos que su tarjeta TNE ya fue retirada.
 
 Si esta información no corresponde, le solicitamos comunicarse con la unidad responsable para su revisión.
 
-RUT: ${rut}
-Período: ${p.periodo}
-
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
 
     case 'ACEPTADA':
       return `
 Estimado/a ${nombre},
 
-Su solicitud TNE figura como ACEPTADA en el reporte de JUNAEB.
-
-Esto significa que el trámite fue aprobado y continúa su curso. Le notificaremos cuando la tarjeta se encuentre disponible para retiro en la universidad.
-
-RUT: ${rut}
-Período: ${p.periodo}
+La inscipción de su tarjeta TNE ha sido realizada. Ahora debe esperar la aprobación de la fotografía para proceder con la impresión de su TNE. Si aún no se ha tomado la foto, debe acercarse a la oficina de Junaeb (Las Acacias 2006 de 9:00 a 17:00 horas).
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
 
     case 'FOTOGRAFIADO':
       return `
 Estimado/a ${nombre},
 
-Su solicitud TNE figura como FOTOGRAFIADO en el reporte de JUNAEB.
-
-El trámite avanza y le notificaremos cuando la tarjeta se encuentre disponible para retiro en la universidad.
-
-RUT: ${rut}
-Período: ${p.periodo}
+Su TNE se encuentra en impresión. Cuando llegue, se le notificará por su correo institucional.
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
 
     case 'REVALIDADO':
       return `
 Estimado/a ${nombre},
 
-Su TNE figura como REVALIDADO en el reporte de JUNAEB.
-
-Le notificaremos si se registra un cambio de estado relevante.
-
-RUT: ${rut}
-Período: ${p.periodo}
+Su TNE se encuentra en impresión. Cuando llegue, se le notificará por su correo institucional.
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
 
     case 'RECHAZADA':
@@ -122,12 +99,9 @@ Motivo: ${p.motivo_rechazo ?? 'No especificado'}
 
 Le recomendamos acercarse a la unidad responsable para regularizar su situación.
 
-RUT: ${rut}
-Período: ${p.periodo}
-
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
 
     case 'SIN_REGISTRO_JUNAEB': {
@@ -143,7 +117,7 @@ Período: ${p.periodo}
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
     }
 
@@ -160,7 +134,7 @@ Período: ${p.periodo}
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
-Universidad
+Universidad de Tarapacá
 `;
   }
 }
