@@ -7,6 +7,7 @@ import { ImportadorModule } from './importador/importador.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { SqlitePragmasService } from './db/sqlite-pragmas.service';
 import { ReporteModule } from './reporte/reporte.module';
+import { TneModule } from './tne/tne.module';
 
 @Module({
   providers: [SqlitePragmasService],
@@ -18,6 +19,7 @@ import { ReporteModule } from './reporte/reporte.module';
     ImportadorModule,
     NotificacionesModule,
     ReporteModule,
+    TneModule,
   ],
 })
 export class AppModule {}
