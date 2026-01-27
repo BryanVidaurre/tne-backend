@@ -12,8 +12,10 @@ export class TneJobService {
   async runForSinRegistroJunaeb(periodo: number) {
     const rows = await this.ds.query(
       `
-select a.rut_num, a.rut_dv from alumno a join proceso_tne pt 
-on a.rut_num = pt.rut_num  where a.rut_num = 15008338 
+      select a.rut_num, a.rut_dv
+      from alumno a
+      join proceso_tne pt on a.rut_num = pt.rut_num
+      where pt.estado_final like 'SIN_REGISTRO_JUNAEB'
         and pt.periodo = $1
       `,
       [periodo],

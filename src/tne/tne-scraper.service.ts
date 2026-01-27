@@ -12,10 +12,6 @@ export class TneScraperService {
   private loginPromise: Promise<void> | null = null;
 
   private readonly base = 'https://sistema.tne.cl';
-  private readonly loginGetPath = '/tie/ingresos/acceso/15/es';
-  private readonly loginPostPath = '/tie/ingresos/acceso';
-  private readonly estadosPath = '/tie/estados_tarjetas/';
-
   private splitRunDv(rut_num: number, rut_dv: string) {
     const num = String(rut_num).replace(/\D/g, '');
     const dv = String(rut_dv).trim().toUpperCase();
@@ -56,7 +52,6 @@ export class TneScraperService {
           },
         });
 
-        // 1) GET al login
         const loginGet = await this.api.get('/tie/ingresos/acceso/15/es', {
           maxRedirects: 10,
         });
@@ -69,7 +64,6 @@ export class TneScraperService {
         const form = $('form#frm, form[name="frm"], form').first();
         if (!form.length) throw new Error('No se encontró <form> de login');
 
-        // action del form (puede venir relativo)
         const actionAttr = (
           form.attr('action') || '/tie/ingresos/acceso'
         ).trim();
@@ -79,7 +73,6 @@ export class TneScraperService {
             ? actionAttr
             : `/${actionAttr}`;
 
-        // Detectar nombres de campos (no asumir "address/password")
         const userInput = form
           .find('input[type="text"], input[type="email"], input:not([type])')
           .first();
@@ -101,19 +94,6 @@ export class TneScraperService {
           const name = $(el).attr('name');
           if (!name) return;
           hidden[name] = ($(el).attr('value') ?? '').toString();
-        });
-
-        // 2) POST login con todos los hidden + user/pass
-        const payload: Record<string, string> = {
-          ...hidden,
-          [userName]: user,
-          [passName]: pass,
-        };
-
-        // El form indica multipart/form-data, así que usamos multipart
-        const loginPost = await this.api.post(actionPath, {
-          multipart: payload,
-          maxRedirects: 10,
         });
 
         // 3) Check sesión: estados_tarjetas NO debe redirigir a /tie/ingresos

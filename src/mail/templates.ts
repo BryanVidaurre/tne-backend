@@ -15,6 +15,8 @@ type EstadoEmailParams = {
   fecha_entrega_u?: string | null;
   fecha_retiro?: string | null;
   medio_ingreso?: string | null;
+  periodo_tne?: string | null;
+  institucion?: string | null;
 };
 
 export function buildEstadoEmail(p: EstadoEmailParams) {
@@ -128,13 +130,13 @@ Dirección de Asuntos Estudiantiles
 Universidad
 `;
 
-    case 'SIN_REGISTRO_JUNAEB':
+    case 'SIN_REGISTRO_JUNAEB': {
+      const periodoTne = (p.periodo_tne ?? String(p.periodo ?? '')).trim();
+      const institucion = (p.institucion ?? '').trim();
       return `
 Estimado/a ${nombre},
 
-A la fecha, su pago se encuentra registrado, pero aún no aparece información asociada en el reporte de JUNAEB.
-
-Esto puede deberse a un desfase de actualización. Le notificaremos cuando el sistema registre un nuevo estado.
+USTED FIGURA CON UN PASE ${periodoTne} DE LA ${institucion || 'INSTITUCION'}, SOLO DEBE REVALIDAR EL SELLO. SI NO TIENE SU PASE DEBE SOLICITAR UNA REPOSICION DE TARJETA EN JUNAEB (Las acacias 2006, Lunes a viernes de 9:00 a 17:00 horas)
 
 RUT: ${rut}
 Período: ${p.periodo}
@@ -143,6 +145,7 @@ Atentamente,
 Dirección de Asuntos Estudiantiles
 Universidad
 `;
+    }
 
     default:
       return `

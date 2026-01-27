@@ -6,11 +6,13 @@ import { NotificacionesController } from './notificaciones.controller';
 import { ProcesoTne } from '../proceso/proceso-tne.entity';
 import { Alumno } from '../alumno/alumno.entity';
 import { MailModule } from '../mail/mail.module';
+import { TneModule } from '../tne/tne.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([NotificacionEmail, ProcesoTne, Alumno]),
     MailModule,
+    TneModule,
   ],
   controllers: [NotificacionesController],
   providers: [NotificacionesService],

@@ -5,6 +5,7 @@ import { ProcesoTne } from '../proceso/proceso-tne.entity';
 import { Alumno } from '../alumno/alumno.entity';
 import { MailService } from '../mail/mail.service';
 import { buildEstadoEmail } from '../mail/templates';
+import { TneScraperService } from '../tne/tne-scraper.service';
 
 @Injectable()
 export class NotificacionesService {
@@ -14,6 +15,7 @@ export class NotificacionesService {
     @InjectRepository(Alumno)
     private readonly alumnoRepo: Repository<Alumno>,
     private readonly mail: MailService,
+    private readonly scraper: TneScraperService,
   ) {}
 
   async enviar(periodo: number) {
@@ -79,6 +81,26 @@ export class NotificacionesService {
         const tipo =
           estado === 'RETIRADA' ? 'ENTREGADA_AL_ALUMNO' : 'SIN_REGISTRO_JUNAEB';
 
+        let periodoTne: string | null = null;
+        let institucion: string | null = null;
+        if (estado === 'SIN_REGISTRO_JUNAEB' && alumno?.rut_dv) {
+          try {
+            const info = await this.scraper.fetchPeriodoRbdInstitucion(
+              p.rut_num,
+              alumno.rut_dv,
+            );
+            periodoTne = info.periodo || null;
+            institucion = info.institucion || null;
+          } catch (e: any) {
+            console.warn(
+              'SCRAPER ERROR:',
+              e?.code,
+              e?.response,
+              e?.message || e,
+            );
+          }
+        }
+
         const html = buildEstadoEmail({
           nombre: alumno?.nombre ?? 'Estudiante',
           rut_num: p.rut_num,
@@ -94,6 +116,8 @@ export class NotificacionesService {
           fecha_entrega_u: (p as any).fecha_entrega_u ?? null,
           fecha_retiro: (p as any).fecha_retiro ?? null,
           medio_ingreso: (p as any).medio_ingreso ?? null,
+          periodo_tne: periodoTne,
+          institucion,
         });
 
         await this.mail.send(email, subjectFor(tipo, periodo), html);
