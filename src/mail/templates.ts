@@ -1,4 +1,4 @@
-import { rutToDisplay } from '../common/rut.util';
+﻿import { rutToDisplay } from '../common/rut.util';
 
 type EstadoEmailParams = {
   nombre: string;
@@ -30,102 +30,56 @@ export function buildEstadoEmail(p: EstadoEmailParams) {
   )}</pre>`;
 }
 
-function mensajePorEstado(p: EstadoEmailParams, nombre: string, rut: string) {
+export function buildEstadoMensajePlano(p: EstadoEmailParams) {
+  const periodoTne = (p.periodo_tne ?? String(p.periodo ?? '')).trim();
+  const institucion = (p.institucion ?? '').trim();
+
   switch (p.estado_final) {
     case 'LISTA_RETIRO_U':
-      return `
-Estimado/a ${nombre},
-
-Su tarjeta TNE ha llegado, debe retirarla en la DAE en el siguiente horario: Mañana 9:00 - 13:00   Tarde 14:00 - 16:00.
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-
+      return 'Su tarjeta TNE ha llegado, debe retirarla en la DAE en el siguiente horario: Mañana 9:00 - 13:00   Tarde 14:00 - 16:00.';
     case 'RETIRADA':
-      return `
-Estimado/a ${nombre},
-
-Registramos que su tarjeta TNE ya fue retirada.
-
-Si esta información no corresponde, le solicitamos comunicarse con la unidad responsable para su revisión.
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-
+      return 'Registramos que su tarjeta TNE ya fue retirada. Si esta información no corresponde, le solicitamos comunicarse con la unidad responsable para su revisión.';
     case 'ACEPTADA':
-      return `
-Estimado/a ${nombre},
-
-La inscipción de su tarjeta TNE ha sido realizada. Ahora debe esperar la aprobación de la fotografía para proceder con la impresión de su TNE. Si aún no se ha tomado la foto, debe acercarse a la oficina de Junaeb (Las Acacias 2006 de 9:00 a 17:00 horas).
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-
+      return 'La inscripción de su tarjeta TNE ha sido realizada. Ahora debe esperar la aprobación de la fotografía para proceder con la impresión de su TNE. Si aún no se ha tomado la foto, debe acercarse a la oficina de Junaeb (Las Acacias 2006 de 9:00 a 17:00 horas).';
     case 'FOTOGRAFIADO':
-      return `
-Estimado/a ${nombre},
-
-Su TNE se encuentra en impresión. Cuando llegue, se le notificará por su correo institucional.
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-
+      return 'Su TNE se encuentra en impresión. Cuando llegue, se le notificará por su correo institucional.';
     case 'REVALIDADO':
-      return `
-Estimado/a ${nombre},
-
-Su TNE se encuentra en impresión. Cuando llegue, se le notificará por su correo institucional.
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-
+      return 'Su TNE se encuentra en impresión. Cuando llegue, se le notificará por su correo institucional.';
     case 'RECHAZADA':
+      return `Su solicitud TNE figura como RECHAZADA en el reporte de JUNAEB. Motivo: ${p.motivo_rechazo ?? 'No especificado'}.`;
+    case 'SIN_REGISTRO_JUNAEB':
+      return `Usted figura con un pase ${periodoTne} de la ${institucion || 'institución'}, solo debe revalidar el sello. Si no tiene su pase, debe solicitar una reposición de tarjeta en JUNAEB (Las Acacias 2006, lunes a viernes de 9:00 a 17:00 horas).`;
+    default:
+      return 'Su estado de tarjeta TNE fue actualizado en el sistema.';
+  }
+}
+
+function mensajePorEstado(p: EstadoEmailParams, nombre: string, rut: string) {
+  const mensajePlano = buildEstadoMensajePlano(p);
+
+  switch (p.estado_final) {
+    case 'LISTA_RETIRO_U':
+    case 'RETIRADA':
+    case 'ACEPTADA':
+    case 'FOTOGRAFIADO':
+    case 'REVALIDADO':
+    case 'RECHAZADA':
+    case 'SIN_REGISTRO_JUNAEB':
       return `
 Estimado/a ${nombre},
 
-Su solicitud TNE figura como RECHAZADA en el reporte de JUNAEB.
-
-Motivo: ${p.motivo_rechazo ?? 'No especificado'}
-
-Le recomendamos acercarse a la unidad responsable para regularizar su situación.
+${mensajePlano}
 
 Atentamente,
 Dirección de Asuntos Estudiantiles
 Universidad de Tarapacá
 `;
-
-    case 'SIN_REGISTRO_JUNAEB': {
-      const periodoTne = (p.periodo_tne ?? String(p.periodo ?? '')).trim();
-      const institucion = (p.institucion ?? '').trim();
-      return `
-Estimado/a ${nombre},
-
-USTED FIGURA CON UN PASE ${periodoTne} DE LA ${institucion || 'INSTITUCION'}, SOLO DEBE REVALIDAR EL SELLO. SI NO TIENE SU PASE DEBE SOLICITAR UNA REPOSICION DE TARJETA EN JUNAEB (Las acacias 2006, Lunes a viernes de 9:00 a 17:00 horas)
-
-RUT: ${rut}
-Período: ${p.periodo}
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-    }
 
     default:
       return `
 Estimado/a ${nombre},
 
-Su estado de tarjeta TNE fue actualizado en el sistema.
+${mensajePlano}
 
 Estado: ${p.estado_final}
 
@@ -149,3 +103,4 @@ function escapeHtml(v: unknown) {
       ] as string,
   );
 }
+

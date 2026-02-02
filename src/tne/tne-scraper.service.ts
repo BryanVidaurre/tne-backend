@@ -96,6 +96,19 @@ export class TneScraperService {
           hidden[name] = ($(el).attr('value') ?? '').toString();
         });
 
+
+        // 2) POST login con todos los hidden + user/pass
+        const payload: Record<string, string> = {
+          ...hidden,
+          [userName]: user,
+          [passName]: pass,
+        };
+
+        await this.api.post(actionPath, {
+          multipart: payload,
+          maxRedirects: 10,
+        });
+
         // 3) Check sesión: estados_tarjetas NO debe redirigir a /tie/ingresos
         const check = await this.api.get('/tie/estados_tarjetas/', {
           maxRedirects: 0,
@@ -201,3 +214,8 @@ export class TneScraperService {
     return out;
   }
 }
+
+
+
+
+

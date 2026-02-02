@@ -4,9 +4,10 @@ import { ReporteController } from './reporte.controller';
 import { ReporteService } from './reporte.service';
 import { ProcesoTne } from '../proceso/proceso-tne.entity';
 import { Alumno } from '../alumno/alumno.entity';
+import { TneModule } from '../tne/tne.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProcesoTne, Alumno])],
+  imports: [TypeOrmModule.forFeature([ProcesoTne, Alumno]), TneModule],
   controllers: [ReporteController],
   providers: [ReporteService],
 })
