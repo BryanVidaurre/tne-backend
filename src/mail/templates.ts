@@ -103,4 +103,3 @@ function escapeHtml(v: unknown) {
       ] as string,
   );
 }
-

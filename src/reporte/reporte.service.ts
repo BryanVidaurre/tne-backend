@@ -44,12 +44,7 @@ export class ReporteService {
       rows.push({ proceso: p, alumno, nombres, paterno, materno });
     }
 
-    const infoMap = await fetchInfoMap(
-      sinRegistro,
-      this.scraper,
-      8,
-      4000,
-    );
+    const infoMap = await fetchInfoMap(sinRegistro, this.scraper, 8, 4000);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('TNE');
@@ -140,7 +135,10 @@ async function fetchInfoMap(
   concurrency: number,
   timeoutMs: number,
 ) {
-  const map = new Map<string, { periodo: string | null; institucion: string | null }>();
+  const map = new Map<
+    string,
+    { periodo: string | null; institucion: string | null }
+  >();
   const unique = new Map<string, { rut_num: number; rut_dv: string }>();
   for (const it of list) {
     const key = `${it.rut_num}-${it.rut_dv}`;
@@ -184,4 +182,3 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     });
   });
 }
-

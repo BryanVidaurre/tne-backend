@@ -96,7 +96,6 @@ export class TneScraperService {
           hidden[name] = ($(el).attr('value') ?? '').toString();
         });
 
-
         // 2) POST login con todos los hidden + user/pass
         const payload: Record<string, string> = {
           ...hidden,
@@ -214,8 +213,3 @@ export class TneScraperService {
     return out;
   }
 }
-
-
-
-
-

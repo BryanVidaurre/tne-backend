@@ -13,7 +13,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard';
 
 @Module({
-  providers: [SqlitePragmasService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    SqlitePragmasService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DbModule,
@@ -27,5 +30,3 @@ import { AuthGuard } from './auth/auth.guard';
   ],
 })
 export class AppModule {}
-
-
