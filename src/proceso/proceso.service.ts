@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProcesoTne } from './proceso-tne.entity';
@@ -26,6 +27,8 @@ function formatFechaChile(iso: string | Date) {
 
 @Injectable()
 export class ProcesoService {
+  private readonly logger = new Logger(ProcesoService.name);
+
   constructor(
     @InjectRepository(ProcesoTne)
     private readonly procesoRepo: Repository<ProcesoTne>,
@@ -97,7 +100,11 @@ export class ProcesoService {
 
   async estadoPublico(rutInput: string, periodo?: number) {
     const parsed = parseRut(rutInput);
-    if (!parsed) throw new BadRequestException('RUT inválido');
+    if (!parsed) throw new BadRequestException('RUT invalido');
+
+    this.logger.log(
+      `estadoPublico inicio rut=${rutInput} rut_num=${parsed.rut_num} periodo_query=${periodo ?? 'none'}`,
+    );
 
     const where = periodo
       ? { rut_num: parsed.rut_num, periodo }
@@ -110,6 +117,10 @@ export class ProcesoService {
 
     if (!proceso) throw new NotFoundException('No hay proceso para ese RUT');
 
+    this.logger.log(
+      `estadoPublico proceso encontrado rut_num=${parsed.rut_num} periodo_db=${proceso.periodo} estado_final=${proceso.estado_final ?? 'null'}`,
+    );
+
     const alumno = await this.alumnoRepo.findOne({
       where: { rut_num: parsed.rut_num },
     });
@@ -117,9 +128,14 @@ export class ProcesoService {
     const rut_dv = alumno?.rut_dv ?? parsed.rut_dv ?? null;
     const estado_final = proceso.estado_final ?? 'SIN_ESTADO';
 
+    this.logger.log(
+      `estadoPublico rut_dv resuelto rut_num=${parsed.rut_num} rut_dv=${rut_dv ?? 'null'} estado_final=${estado_final}`,
+    );
+
     let periodo_tne: string | null = null;
     let institucion: string | null = null;
     if (estado_final === 'SIN_REGISTRO_JUNAEB' && rut_dv) {
+      this.logger.log(`estadoPublico scraper inicio run=${parsed.rut_num}-${rut_dv}`);
       try {
         const info = await this.scraper.fetchPeriodoRbdInstitucion(
           parsed.rut_num,
@@ -127,9 +143,23 @@ export class ProcesoService {
         );
         periodo_tne = info.periodo || null;
         institucion = info.institucion || null;
+        this.logger.log(
+          `estadoPublico scraper ok run=${parsed.rut_num}-${rut_dv} periodo_tne=${periodo_tne ?? 'null'} institucion=${institucion ?? 'null'}`,
+        );
       } catch (e: any) {
-        console.warn('SCRAPER ERROR:', e?.code, e?.response, e?.message || e);
+        this.logger.error(
+          `estadoPublico scraper error run=${parsed.rut_num}-${rut_dv} msg=${e?.message || e}`,
+          e?.stack,
+        );
       }
+    } else {
+      this.logger.log(
+        `estadoPublico scraper omitido rut_num=${parsed.rut_num} motivo=${
+          estado_final !== 'SIN_REGISTRO_JUNAEB'
+            ? 'estado_final_no_aplica'
+            : 'rut_dv_faltante'
+        }`,
+      );
     }
 
     const mensaje_html = buildEstadoMensajePlano({
@@ -158,4 +188,5 @@ export class ProcesoService {
       mensaje_html,
     };
   }
+
 }

@@ -48,6 +48,9 @@ export function buildEstadoMensajePlano(p: EstadoEmailParams) {
     case 'RECHAZADA':
       return `Su solicitud TNE figura como RECHAZADA en el reporte de JUNAEB. Motivo: ${p.motivo_rechazo ?? 'No especificado'}.`;
     case 'SIN_REGISTRO_JUNAEB':
+      if (!p.periodo_tne && !p.institucion) {
+        return 'No fue posible validar su informacion en linea de JUNAEB en este momento. Por favor intente nuevamente mas tarde o contacte a DAE para revision.';
+      }
       return `Usted figura con un pase ${periodoTne} de la ${institucion || 'institución'}, solo debe revalidar el sello. Si no tiene su pase, debe solicitar una reposición de tarjeta en JUNAEB (Las Acacias 2006, lunes a viernes de 9:00 a 17:00 horas).`;
     default:
       return 'Su estado de tarjeta TNE fue actualizado en el sistema.';

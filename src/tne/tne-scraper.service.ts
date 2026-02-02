@@ -27,11 +27,146 @@ export class TneScraperService {
       /parent\.document\.frm_tne\.([a-zA-Z0-9_]+)\.value\s*=\s*"([^"]*)"\s*;/g;
     const reSq =
       /parent\.document\.frm_tne\.([a-zA-Z0-9_]+)\.value\s*=\s*'([^']*)'\s*;/g;
+    const reAnyDoc =
+      /(?:parent\.)?document\.frm_tne\.([a-zA-Z0-9_]+)\.value\s*=\s*['"]([^'"]*)['"]\s*;/g;
+    const reJqVal =
+      /\$\(\s*['"]#([a-zA-Z0-9_]+)['"]\s*\)\.val\(\s*['"]([^'"]*)['"]\s*\)/g;
+    const reGetById =
+      /document\.getElementById\(\s*['"]([a-zA-Z0-9_]+)['"]\s*\)\.value\s*=\s*['"]([^'"]*)['"]\s*;/g;
 
     let m: RegExpExecArray | null;
     while ((m = reDq.exec(body)) !== null) out[m[1]] = m[2];
     while ((m = reSq.exec(body)) !== null) out[m[1]] = m[2];
+    while ((m = reAnyDoc.exec(body)) !== null) out[m[1]] = m[2];
+    while ((m = reJqVal.exec(body)) !== null) out[m[1]] = m[2];
+    while ((m = reGetById.exec(body)) !== null) out[m[1]] = m[2];
+
+    // Fallback: read values straight from hidden/text inputs when script patterns do not match.
+    const $ = cheerio.load(body);
+    const keys = ['tne_periodo', 'tne_inst_rbd', 'tne_inst_nombre'];
+    for (const key of keys) {
+      if (out[key]) continue;
+      const byId = $(`#${key}`).attr('value');
+      const byName = $(`input[name="${key}"]`).attr('value');
+      const value = (byId ?? byName ?? '').trim();
+      if (value) out[key] = value;
+    }
+
     return out;
+  }
+
+  private normalizeKey(key: string): string {
+    return String(key || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  private decodeEntities(value: string | null | undefined): string {
+    const raw = String(value ?? '');
+    if (!raw) return '';
+    return cheerio.load(`<span>${raw}</span>`)('span').text();
+  }
+
+  private cleanField(value: string | null | undefined): string {
+    return this.decodeEntities(value)
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private parseFallbackFieldsFromHtml(body: string) {
+    const $ = cheerio.load(body);
+    const all: Record<string, string> = {};
+
+    $('input').each((_, el) => {
+      const id = ($(el).attr('id') || '').trim();
+      const name = ($(el).attr('name') || '').trim();
+      const value = this.cleanField($(el).attr('value'));
+      if (!value) return;
+      if (id) all[id] = value;
+      if (name) all[name] = value;
+    });
+
+    let periodo = '';
+    let institucion = '';
+    let rbd = '';
+
+    for (const [k, v] of Object.entries(all)) {
+      const nk = this.normalizeKey(k);
+      if (!periodo && nk.includes('periodo') && /\b20\d{2}\b/.test(v)) {
+        periodo = v.match(/\b20\d{2}\b/)?.[0] ?? v;
+      }
+      if (
+        !institucion &&
+        /(instit|instnombre|establec|colegio|universidad|nombreinst)/.test(nk) &&
+        /[a-zA-Z]/.test(v)
+      ) {
+        institucion = v;
+      }
+      if (!rbd && nk.includes('rbd') && /[0-9]/.test(v)) {
+        rbd = v;
+      }
+    }
+
+    $('tr').each((_, tr) => {
+      const cells = $(tr)
+        .find('th,td')
+        .map((__, c) => this.cleanField($(c).text()))
+        .get()
+        .filter(Boolean);
+      if (cells.length < 2) return;
+      const label = this.normalizeKey(cells[0]);
+      const value = cells.slice(1).find(Boolean) ?? '';
+      if (!value) return;
+
+      if (!periodo && label.includes('periodo') && /\b20\d{2}\b/.test(value)) {
+        periodo = value.match(/\b20\d{2}\b/)?.[0] ?? value;
+      }
+      if (!institucion && label.includes('instit')) {
+        institucion = value;
+      }
+      if (!rbd && label.includes('rbd') && /[0-9]/.test(value)) {
+        rbd = value;
+      }
+    });
+
+    return { periodo, institucion, rbd };
+  }
+
+  private mergeTneInfo(body: string, assignments: Record<string, string>) {
+    const exactPeriodo = this.cleanField(assignments.tne_periodo);
+    const exactInstitucion = this.cleanField(assignments.tne_inst_nombre);
+    const exactRbd = this.cleanField(assignments.tne_inst_rbd);
+
+    if (exactPeriodo && exactInstitucion) {
+      return { periodo: exactPeriodo, institucion: exactInstitucion, rbd: exactRbd };
+    }
+
+    const byKeyPeriodo = Object.entries(assignments).find(([k, v]) => {
+      const nk = this.normalizeKey(k);
+      return nk.includes('periodo') && /\b20\d{2}\b/.test(this.cleanField(v));
+    });
+    const byKeyInstitucion = Object.entries(assignments).find(([k, v]) => {
+      const nk = this.normalizeKey(k);
+      const cleaned = this.cleanField(v);
+      return /(instit|instnombre|establec|colegio|universidad|nombreinst)/.test(nk) && /[a-zA-Z]/.test(cleaned);
+    });
+    const byKeyRbd = Object.entries(assignments).find(([k, v]) => {
+      const nk = this.normalizeKey(k);
+      return nk.includes('rbd') && /[0-9]/.test(this.cleanField(v));
+    });
+
+    const htmlFallback = this.parseFallbackFieldsFromHtml(body);
+
+    const periodo =
+      exactPeriodo ||
+      this.cleanField(byKeyPeriodo?.[1]).match(/\b20\d{2}\b/)?.[0] ||
+      htmlFallback.periodo ||
+      '';
+    const institucion = exactInstitucion || this.cleanField(byKeyInstitucion?.[1]) || htmlFallback.institucion || '';
+    const rbd = exactRbd || this.cleanField(byKeyRbd?.[1]) || htmlFallback.rbd || '';
+
+    return { periodo, institucion, rbd };
   }
 
   private async ensureLoggedIn(): Promise<void> {
@@ -146,6 +281,9 @@ export class TneScraperService {
 
     const path = `/tie/estados_tarjetas/tneEmitidas/${num}/${dv}`;
     const res = await this.api!.get(path, { maxRedirects: 0 });
+    this.logger.log(
+      `tneEmitidas request run=${num}-${dv} status=${res.status()}`,
+    );
 
     // Sesión expirada → relogin 1 vez
     if ([301, 302, 303, 307, 308, 401, 403].includes(res.status())) {
@@ -162,12 +300,19 @@ export class TneScraperService {
 
       const body2 = await res2.text();
       const f2 = this.parseFrmTneAssignments(body2);
+      const merged2 = this.mergeTneInfo(body2, f2);
+
+      if (!merged2.periodo && !merged2.institucion) {
+        this.logger.warn(
+          `Sin datos en tneEmitidas para RUN ${num}-${dv}. Claves capturadas: ${Object.keys(f2).slice(0, 12).join(', ') || 'ninguna'}`,
+        );
+      }
 
       return {
         run: `${num}-${dv}`,
-        periodo: f2.tne_periodo ?? '',
-        rbd: f2.tne_inst_rbd ?? '',
-        institucion: f2.tne_inst_nombre ?? '',
+        periodo: merged2.periodo,
+        rbd: merged2.rbd,
+        institucion: merged2.institucion,
       };
     }
 
@@ -178,12 +323,23 @@ export class TneScraperService {
 
     const body = await res.text();
     const f = this.parseFrmTneAssignments(body);
+    const merged = this.mergeTneInfo(body, f);
+
+    if (!merged.periodo && !merged.institucion) {
+      this.logger.warn(
+        `Sin datos en tneEmitidas para RUN ${num}-${dv}. Claves capturadas: ${Object.keys(f).slice(0, 12).join(', ') || 'ninguna'}`,
+      );
+    }
+
+    this.logger.log(
+      `tneEmitidas parsed run=${num}-${dv} periodo=${merged.periodo || 'null'} institucion=${merged.institucion || 'null'} rbd=${merged.rbd || 'null'}`,
+    );
 
     return {
       run: `${num}-${dv}`,
-      periodo: f.tne_periodo ?? '',
-      rbd: f.tne_inst_rbd ?? '',
-      institucion: f.tne_inst_nombre ?? '',
+      periodo: merged.periodo,
+      rbd: merged.rbd,
+      institucion: merged.institucion,
     };
   }
 
