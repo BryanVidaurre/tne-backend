@@ -1,7 +1,13 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import express from 'express';
 import { ReporteService } from './reporte.service';
-import { ApiBearerAuth, ApiOperation, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('Reporte')
 @ApiBearerAuth('bearer')
@@ -11,7 +17,9 @@ export class ReporteController {
 
   @ApiOperation({ summary: 'Descargar reporte Excel del periodo' })
   @ApiQuery({ name: 'periodo', type: Number, required: true, example: 2026 })
-  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @ApiProduces(
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  )
   @Get('excel')
   async descargarExcel(
     @Query('periodo') periodo: number,

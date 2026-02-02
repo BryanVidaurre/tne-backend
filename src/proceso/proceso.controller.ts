@@ -1,7 +1,12 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { Public } from '../auth/public.decorator';
 import { ProcesoService } from './proceso.service';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('Proceso')
 @ApiBearerAuth('bearer')
@@ -11,7 +16,12 @@ export class ProcesoController {
 
   @ApiOperation({ summary: 'Listar estados de proceso por periodo' })
   @ApiQuery({ name: 'periodo', type: Number, required: true, example: 2026 })
-  @ApiQuery({ name: 'estado', type: String, required: false, example: 'PENDIENTE' })
+  @ApiQuery({
+    name: 'estado',
+    type: String,
+    required: false,
+    example: 'PENDIENTE',
+  })
   @Get()
   listar(
     @Query('periodo') periodoStr: string,
@@ -31,7 +41,12 @@ export class ProcesoController {
 
   @Public()
   @ApiOperation({ summary: 'Consultar estado publico por RUT' })
-  @ApiQuery({ name: 'rut', type: String, required: true, example: '21802735-0' })
+  @ApiQuery({
+    name: 'rut',
+    type: String,
+    required: true,
+    example: '21802735-0',
+  })
   @ApiQuery({ name: 'periodo', type: Number, required: false, example: 2026 })
   @Get('estado-publico')
   estadoPublico(

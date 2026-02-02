@@ -57,34 +57,13 @@ export function buildEstadoMensajePlano(p: EstadoEmailParams) {
 function mensajePorEstado(p: EstadoEmailParams, nombre: string, rut: string) {
   const mensajePlano = buildEstadoMensajePlano(p);
 
-  switch (p.estado_final) {
-    case 'LISTA_RETIRO_U':
-    case 'RETIRADA':
-    case 'ACEPTADA':
-    case 'FOTOGRAFIADO':
-    case 'REVALIDADO':
-    case 'RECHAZADA':
-    case 'SIN_REGISTRO_JUNAEB':
-      return `
+  console.log(p);
+
+  if (true) {
+    return `
 Estimado/a ${nombre},
 
 ${mensajePlano}
-
-Atentamente,
-Dirección de Asuntos Estudiantiles
-Universidad de Tarapacá
-`;
-
-    default:
-      return `
-Estimado/a ${nombre},
-
-${mensajePlano}
-
-Estado: ${p.estado_final}
-
-RUT: ${rut}
-Período: ${p.periodo}
 
 Atentamente,
 Dirección de Asuntos Estudiantiles

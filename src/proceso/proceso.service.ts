@@ -7,9 +7,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ProcesoTne } from './proceso-tne.entity';
 import { Repository } from 'typeorm';
 import { Alumno } from '../alumno/alumno.entity';
-import { buildEstadoEmail } from '../mail/templates';
 import { TneScraperService } from '../tne/tne-scraper.service';
 import { parseRut } from '../common/rut.util';
+import { buildEstadoMensajePlano } from '../mail/templates';
+
+function formatFechaChile(iso: string | Date) {
+  const date = new Date(iso);
+
+  return new Intl.DateTimeFormat('es-CL', {
+    timeZone: 'America/Santiago',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
 
 @Injectable()
 export class ProcesoService {
@@ -119,7 +132,7 @@ export class ProcesoService {
       }
     }
 
-    const mensaje_html = buildEstadoEmail({
+    const mensaje_html = buildEstadoMensajePlano({
       nombre: alumno?.nombre ?? 'Estudiante',
       rut_num: parsed.rut_num,
       rut_dv,
@@ -141,7 +154,7 @@ export class ProcesoService {
       rut_dv,
       periodo: proceso.periodo,
       estado_final,
-      updated_at: proceso.updated_at,
+      updated_at: formatFechaChile(proceso.updated_at),
       mensaje_html,
     };
   }
